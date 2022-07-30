@@ -1,11 +1,14 @@
-const AddThread = require('../AddThread');
+const AddThread = require("../AddThread");
 
-describe('an AddThread entities', () => {
+ 
+describe('a AddThread entities', () => {
   it('should throw error when payload did not contain needed property', () => {
+    // Arrange
     const payload = {
-      title: 'a title',
+      title: 'ini title',
     };
-
+ 
+    // Action and Assert
     expect(() => new AddThread(payload)).toThrowError('ADD_THREAD.NOT_CONTAIN_NEEDED_PROPERTY');
   });
 
@@ -21,15 +24,16 @@ describe('an AddThread entities', () => {
 
   it('should create addThread object correctly', () => {
     const payload = {
-      userId: 'user-id',
-      title: 'a title',
-      body: 'a body that related to the title',
+      idUser: 'ini id',
+      title: 'ini title',
+      body: 'ini body',
     };
 
-    const { userId, title, body } = new AddThread(payload);
+    const { idUser, title, body } = new AddThread(payload);
 
-    expect(userId).toEqual(payload.userId);
+    expect(idUser).toEqual(payload.idUser);
     expect(title).toEqual(payload.title);
     expect(body).toEqual(payload.body);
   });
+
 });

@@ -1,57 +1,73 @@
-const CommentUseCase = require('../../../../Applications/use_case/CommentUseCase');
+const CommentThreadUseCase = require('../../../../Applications/use_case/CommentThreadUseCase');
+const DomainErrorTranslator = require('../../../../Commons/exceptions/DomainErrorTranslator');
 
-class CommentsHandler {
-  constructor(container) {
-    this._container = container;
 
-    this.postCommentHandler = this.postCommentHandler.bind(this);
-    this.deleteCommentHandler = this.deleteCommentHandler.bind(this);
-    this.likeDislikeCommentHandler = this.likeDislikeCommentHandler.bind(this);
-  }
+class CommentThreadHandler {
+    constructor(container) {
+        this._container = container;
 
-  async postCommentHandler(request, h) {
-    const commentUseCase = this._container.getInstance(CommentUseCase.name);
-    const addedComment = await commentUseCase.addCommentExec({
-      ...request.payload,
-      ...request.params,
-      userId: request.auth.credentials.id,
-    });
+        this.postCommentThreadHandler = this.postCommentThreadHandler.bind(this);
+        this.deleteCommentHandler = this.deleteCommentHandler.bind(this);
+        this.likeOrDislikeCommentHandler = this.likeOrDislikeCommentHandler.bind(this);
+    }
 
-    const response = h.response({
-      status: 'success',
-      data: {
-        addedComment,
-      },
-    });
-    response.code(201);
-    return response;
-  }
+    async postCommentThreadHandler(request, h) {
+        try {
+            const commentThreadUseCase = this._container.getInstance(CommentThreadUseCase.name);
+            const addedComment = await commentThreadUseCase.execute(
+                {
+                    ...request.payload,
+                    ...request.params,
+                    idUser: request.auth.credentials.id
+                }
+            );
 
-  async deleteCommentHandler(request, h) {
-    const commentUseCase = this._container.getInstance(CommentUseCase.name);
-    await commentUseCase.deleteCommentExec({
-      ...request.params,
-      userId: request.auth.credentials.id,
-    });
+            const response = h.response({
+                status: 'success',
+                data: {
+                    addedComment,
+                },
+            });
+            response.code(201);
+            return response;
+        } catch (error) {
+            const translatedError = DomainErrorTranslator.translate(error);
+            const response = h.response({
+                status: 'fail',
+                message: translatedError.message,
+            });
+            response.code(translatedError.statusCode);
+            return response;
+        }
+    }
 
-    const response = h.response({
-      status: 'success',
-    });
-    return response;
-  }
+    async deleteCommentHandler(request, h) {
+        const commentThreadUseCase = this._container.getInstance(CommentThreadUseCase.name);
+        await commentThreadUseCase.deleteComment(
+            {
+                ...request.params,
+                idUser: request.auth.credentials.id
+            }
+        );
+        const response = h.response({
+            status: 'success',
+        });
+        return response;
 
-  async likeDislikeCommentHandler(request, h) {
-    const commentUseCase = this._container.getInstance(CommentUseCase.name);
-    await commentUseCase.likeDislikeCommentExec({
-      ...request.params,
-      userId: request.auth.credentials.id,
-    });
+    }
 
-    const response = h.response({
-      status: 'success',
-    });
-    return response;
-  }
+    async likeOrDislikeCommentHandler(request, h) {
+        const commentUseCase = this._container.getInstance(CommentThreadUseCase.name);
+        await commentUseCase.likeOrDislikeComment({
+            ...request.params,
+            userId: request.auth.credentials.id,
+        });
+
+        const response = h.response({
+            status: 'success',
+        });
+        return response;
+    }
 }
 
-module.exports = CommentsHandler;
+module.exports = CommentThreadHandler;
