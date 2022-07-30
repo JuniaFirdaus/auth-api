@@ -1,46 +1,45 @@
 const AddThread = require('../../../Domains/threads/entities/AddThread');
 const AddedThread = require('../../../Domains/threads/entities/AddedThread');
-const DetailedThreadComments = require('../../../Domains/threads/entities/DetailedThreadComments');
-const DetailedCommentsReplies = require('../../../Domains/comments/entities/DetailedCommentsReplies');
-
 const ThreadRepository = require('../../../Domains/threads/ThreadRepository');
-const CommentRepository = require('../../../Domains/comments/CommentRepository');
-const ReplyRepository = require('../../../Domains/replies/ReplyRepository');
-
 const ThreadUseCase = require('../ThreadUseCase');
+const CommentRepository = require('../../../Domains/comments/CommentRepository');
+const DetailThreadComment = require('../../../Domains/threads/entities/DetailThreadComment');
 
 describe('ThreadUseCase', () => {
-  describe('addThread function', () => {
-    it('should orchestrating the add thread action correctly', async () => {
-      const useCasePayload = {
-        userId: 'user-id',
-        title: 'a title',
-        body: 'a body that related to the title',
-      };
-
-      const expectedResponse = new AddedThread({
-        id: 'thread-id',
-        title: useCasePayload.title,
-        owner: useCasePayload.userId,
-      });
-
-      const mockThreadRepository = new ThreadRepository();
-
-      mockThreadRepository.addThread = jest.fn(() => Promise.resolve(expectedResponse));
-
-      const threadUseCase = new ThreadUseCase({
-        threadRepository: mockThreadRepository,
-      });
-
-      const addedThread = await threadUseCase.addThreadExec(useCasePayload);
-
-      expect(addedThread).toStrictEqual(expectedResponse);
-      expect(mockThreadRepository.addThread).toBeCalledWith(new AddThread({
-        userId: useCasePayload.userId,
-        title: useCasePayload.title,
-        body: useCasePayload.body,
-      }));
+  it('should orchestrating the add thread action correctly', async () => {
+    // Arrange
+    const useCasePayload = {
+      idUser: 'thread-123',
+      title: 'ini title',
+      body: 'ini body',
+    };
+    const expectedAddedThread = new AddedThread({
+      id: 'thread-123',
+      title: useCasePayload.title,
+      owner: useCasePayload.idUser,
     });
+
+    /** creating dependency of use case */
+    const mockThreadRepository = new ThreadRepository();
+
+    mockThreadRepository.addThread = jest.fn()
+      .mockImplementation(() => Promise.resolve(expectedAddedThread));
+
+    /** creating use case instance */
+    const getThreadUseCase = new ThreadUseCase({
+      threadRepository: mockThreadRepository
+    });
+
+    // Action
+    const addedThread = await getThreadUseCase.execute(useCasePayload);
+
+    // Assert
+    expect(addedThread).toStrictEqual(expectedAddedThread);
+    expect(mockThreadRepository.addThread).toBeCalledWith(new AddThread({
+      idUser: useCasePayload.idUser,
+      title: useCasePayload.title,
+      body: useCasePayload.body,
+    }));
   });
 
   describe('getThreadDetails function', () => {
@@ -51,79 +50,50 @@ describe('ThreadUseCase', () => {
 
       const expectedThreadResponse = {
         id: useCasePayload.threadId,
-        title: 'a title',
-        body: 'a body that related to the title',
-        date: '2021-12-22T22:42:08.179+07:00',
+        title: 'ini title',
+        body: 'ini body',
+        date: '2022-07-26T10:01:32+0000',
         username: 'dicoding',
       };
 
       const expectedCommentResponse = [
         {
           id: 'comment-123',
-          username: 'juniafirdaus',
-          date: '2021-12-22T22:42:14.859+07:00',
+          username: 'dicoding',
+          date: '2022-07-26T10:01:32+0000',
           content: '**komentar telah dihapus**',
-          likeCount: 10,
         },
         {
           id: 'comment-456',
-          username: 'juniafirdaus',
-          date: '2021-12-22T22:50:14.859+07:00',
-          content: 'a second comment',
-          likeCount: 0,
+          username: 'dicoding',
+          date: '2022-07-26T10:01:32+0000',
+          content: 'ini content',
         },
       ];
 
-      const expectedReplyResponse = [
-        {
-          id: 'reply-123',
-          commentId: 'comment-123',
-          username: 'juniafirdaus',
-          date: '2021-12-22T22:42:14.859+07:00',
-          content: '**balasan telah dihapus**',
-        },
-        {
-          id: 'reply-456',
-          commentId: 'comment-123',
-          username: 'juniafirdaus',
-          date: '2021-12-22T22:50:14.859+07:00',
-          content: 'a second reply',
-        },
-      ];
-
-      const detailedCommentsReplies = new DetailedCommentsReplies(
-        expectedCommentResponse,
-        expectedReplyResponse,
-      );
-
-      const expectedResponse = new DetailedThreadComments(
+      const expectedResponse = new DetailThreadComment(
         expectedThreadResponse,
-        detailedCommentsReplies.comments,
+        expectedCommentResponse,
       );
 
       const mockThreadRepository = new ThreadRepository();
       const mockCommentRepository = new CommentRepository();
-      const mockReplyRepository = new ReplyRepository();
 
-      mockThreadRepository.getDetailById = jest.fn(() => Promise.resolve(expectedThreadResponse));
-      mockCommentRepository.getAllCommentByThreadId = jest
+      mockThreadRepository.getDetailThread = jest.fn(() => Promise.resolve(expectedThreadResponse));
+      mockCommentRepository.getComments = jest
         .fn(() => Promise.resolve(expectedCommentResponse));
-      mockReplyRepository.getAllCommentReplies = jest
-        .fn(() => Promise.resolve(expectedReplyResponse));
-
+  
       const threadUseCase = new ThreadUseCase({
         threadRepository: mockThreadRepository,
         commentRepository: mockCommentRepository,
-        replyRepository: mockReplyRepository,
       });
 
-      const detailedThread = await threadUseCase.getThreadDetailExec(useCasePayload);
+      const detailedThread = await threadUseCase.getDetailThread(useCasePayload);
 
       expect(detailedThread).toStrictEqual(expectedResponse);
-      expect(mockThreadRepository.getDetailById).toBeCalledWith(useCasePayload.threadId);
-      expect(mockCommentRepository.getAllCommentByThreadId)
+      expect(mockThreadRepository.getDetailThread).toBeCalledWith(useCasePayload.threadId);
+      expect(mockCommentRepository.getComments)
         .toBeCalledWith(useCasePayload.threadId);
-      expect(mockReplyRepository.getAllCommentReplies).toBeCalled();
     });
 
     it('shoud return error cause not contrain needed property', async () => {
@@ -134,10 +104,9 @@ describe('ThreadUseCase', () => {
       const threadUseCase = new ThreadUseCase({
         threadRepository: {},
         commentRepository: {},
-        replyRepository: {},
       });
 
-      await expect(threadUseCase.getThreadDetailExec(useCasePayload)).rejects.toThrowError('DETAIL_THREAD.NOT_CONTAIN_NEEDED_PROPERTY');
+      await expect(threadUseCase.getDetailThread(useCasePayload)).rejects.toThrowError('DETAIL_THREAD.NOT_CONTAIN_NEEDED_PROPERTY');
     });
 
     it('shoud return error cause not meet data type spec', async () => {
@@ -148,10 +117,10 @@ describe('ThreadUseCase', () => {
       const threadUseCase = new ThreadUseCase({
         threadRepository: {},
         commentRepository: {},
-        replyRepository: {},
       });
 
-      await expect(threadUseCase.getThreadDetailExec(useCasePayload)).rejects.toThrowError('DETAIL_THREAD.NOT_MEET_DATA_TYPE_SPECIFICATION');
+      await expect(threadUseCase.getDetailThread(useCasePayload)).rejects.toThrowError('DETAIL_THREAD.NOT_MEET_DATA_TYPE_SPECIFICATION');
     });
   });
+
 });
